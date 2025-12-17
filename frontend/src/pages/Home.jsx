@@ -59,7 +59,7 @@ function Home() {
         setAiText("");
   isSpeakingRef.current = false;
   setTimeout(() => {
-    startRecognition(); // ⏳ Delay se race condition avoid hoti hai
+    startRecognition(); // Avoid the race condition by adding a slight delay
   }, 800);
     }
    synth.cancel(); // jodi ager theke kono speech theke thake otake terminate korbe

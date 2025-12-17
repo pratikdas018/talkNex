@@ -8,6 +8,7 @@ import cookieParser from "cookie-parser"
 import userRouter from "./routes/user.routes.js"
 import geminiResponse from "./gemini.js"
 
+//aHYy8C5984whRLV6 pratikdassonu_db_user
 
 const app=express()
 app.use(cors({
