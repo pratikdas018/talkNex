@@ -1,1 +1,221 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Sora:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap");
 @import "tailwindcss";
+
+:root {
+  --bg-0: #080b1a;
+  --bg-1: #0f1633;
+  --bg-2: #122640;
+  --card: #0d1328c7;
+  --card-strong: #0f1a34ea;
+  --line: #84d2ff40;
+  --text-main: #eef6ff;
+  --text-dim: #9eb4cc;
+  --accent: #67f5d5;
+  --accent-2: #66a7ff;
+  --danger: #ff7f9f;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: "Space Grotesk", sans-serif;
+  background: radial-gradient(circle at 15% 20%, #233d6b 0%, transparent 35%),
+    radial-gradient(circle at 80% 10%, #2d4f7f 0%, transparent 34%),
+    linear-gradient(140deg, var(--bg-0), #050710 42%, #0b1533 100%);
+  color: var(--text-main);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: "Sora", sans-serif;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+.page-shell {
+  position: relative;
+  min-height: 100vh;
+  padding: 1.2rem;
+  overflow: hidden;
+}
+
+.page-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(to right, #ffffff06 1px, transparent 1px),
+    linear-gradient(to bottom, #ffffff06 1px, transparent 1px);
+  background-size: 30px 30px;
+  pointer-events: none;
+  mask-image: radial-gradient(circle at center, #000 20%, transparent 85%);
+}
+
+.page-shell::after {
+  content: "";
+  position: absolute;
+  width: 360px;
+  height: 360px;
+  left: -110px;
+  top: -120px;
+  border-radius: 999px;
+  background: radial-gradient(circle, #6dd7ff36, transparent 75%);
+  filter: blur(8px);
+  pointer-events: none;
+  animation: drift 14s ease-in-out infinite alternate;
+}
+
+.glass-card {
+  background: linear-gradient(145deg, #102143c9, #0a1227df);
+  border: 1px solid var(--line);
+  border-radius: 1.3rem;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 16px 50px #0000005f;
+}
+
+.primary-btn {
+  border: 1px solid #b9fff0a1;
+  color: #04121d;
+  background: linear-gradient(135deg, var(--accent), #8dc4ff);
+  border-radius: 999px;
+  font-weight: 700;
+  transition: transform 0.22s ease, box-shadow 0.22s ease, filter 0.22s ease;
+}
+
+.primary-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px #67f5d544;
+  filter: saturate(1.08);
+}
+
+.primary-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.ghost-btn {
+  border: 1px solid #8ab9ff57;
+  color: var(--text-main);
+  border-radius: 999px;
+  background: #ffffff12;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.ghost-btn:hover {
+  background: #ffffff20;
+  border-color: #9fd5ff96;
+}
+
+.field {
+  width: 100%;
+  height: 3.4rem;
+  border-radius: 0.95rem;
+  border: 1px solid #8cb6ff57;
+  background: #091120ce;
+  color: var(--text-main);
+  padding: 0.7rem 1rem;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.field::placeholder {
+  color: #93a3b8;
+}
+
+.field:focus {
+  border-color: #88e8ff;
+  box-shadow: 0 0 0 3px #9ed8ff21;
+}
+
+.mono {
+  font-family: "IBM Plex Mono", monospace;
+}
+
+.subtle {
+  color: var(--text-dim);
+}
+
+.pulse-dot {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 999px;
+  background: #8a9bad;
+}
+
+.pulse-dot.active {
+  background: var(--accent);
+  box-shadow: 0 0 0 0 #67f5d586;
+  animation: pulse 1.6s infinite;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #86d8ff7d;
+  border-radius: 999px;
+}
+
+.reveal-up {
+  animation: reveal-up 0.6s ease both;
+}
+
+.floaty {
+  animation: floaty 5.2s ease-in-out infinite;
+}
+
+@keyframes drift {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  100% {
+    transform: translate(40px, 24px) scale(1.08);
+  }
+}
+
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes floaty {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+@keyframes pulse {
+  70% {
+    box-shadow: 0 0 0 12px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}

@@ -17,7 +17,7 @@ Your task is to understand the user's natural language input and respond with a 
 
 Instructions:
 - "type": determine the intent of the user.
-- "userinput": original sentence the user spoke.
+- "userInput": original sentence the user spoke.
 - "response": A short voice-friendly reply, e.g., "Sure, playing it now", "Here's what I found", "Today is Tuesday", etc.
 
 Type meanings:
@@ -49,9 +49,15 @@ now your userInput- ${command}
     "parts":[{"text": prompt}]
     }]
     })
-return result.data.candidates[0].content.parts[0].text
+    const text = result.data.candidates[0].content.parts[0].text;
+    const startIndex = text.indexOf('{');
+    const endIndex = text.lastIndexOf('}');
+    if (startIndex === -1 || endIndex === -1) return null;
+    const jsonText = text.substring(startIndex, endIndex + 1);
+    return JSON.parse(jsonText);
 } catch (error) {
-    console.log(error)
+    console.error("Gemini API Error:", error?.response?.data || error.message);
+    return null;
 }
 }
 

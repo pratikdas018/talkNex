@@ -70,18 +70,21 @@ export const askToAssistant=async (req,res)=>{
    try {
       const {command}=req.body
       const user=await User.findById(req.userId);
+      if (!user) {
+         return res.status(404).json({ response: "User not found" });
+      }
+      if (!user.history) user.history = [];
       user.history.push(command)
-      user.save()
+      await user.save()
       const userName=user.name
       const assistantName=user.assistantName
       const result=await geminiResponse(command,assistantName,userName)
 
-      const jsonMatch=result.match(/{[\s\S]*}/)
-      if(!jsonMatch){
-         return res.ststus(400).json({response:"sorry, i can't understand"})
+      if(!result){
+         return res.status(400).json({response:"Sorry, I couldn't understand that."})
       }
-      const gemResult=JSON.parse(jsonMatch[0])
-      console.log(gemResult)
+      const gemResult=result
+      console.log("Gemini Response:", gemResult)
       const type=gemResult.type
 
       switch(type){
@@ -89,25 +92,25 @@ export const askToAssistant=async (req,res)=>{
             return res.json({
                type,
                userInput:gemResult.userInput,
-               response:`current date is ${moment().format("YYYY-MM-DD")}`
+               response:`Today is ${moment().format("YYYY-MM-DD")}`
             });
             case 'get-time':
                 return res.json({
                type,
                userInput:gemResult.userInput,
-               response:`current time is ${moment().format("hh:mm A")}`
+               response:`It is ${moment().format("hh:mm A")}`
             });
              case 'get-day':
                 return res.json({
                type,
                userInput:gemResult.userInput,
-               response:`today is ${moment().format("dddd")}`
+               response:`Today is ${moment().format("dddd")}`
             });
             case 'get-month':
                 return res.json({
                type,
                userInput:gemResult.userInput,
-               response:`today is ${moment().format("MMMM")}`
+               response:`It is ${moment().format("MMMM")}`
             });
       case 'google-search':
       case 'youtube-search':
@@ -124,11 +127,20 @@ export const askToAssistant=async (req,res)=>{
          });
 
          default:
+            // Fallback: if Gemini returns a valid response but unknown type, just speak it
+            if (gemResult.response) {
+               return res.json({
+                  type: 'general',
+                  userInput: gemResult.userInput,
+                  response: gemResult.response,
+               });
+            }
             return res.status(400).json({ response: "I didn't understand that command." })
       }
      
 
    } catch (error) {
-  return res.status(500).json({ response: "ask assistant error" })
+      console.error("Ask Assistant Error:", error);
+      return res.status(500).json({ response: "Something went wrong with the assistant." })
    }
 }
