@@ -1,6 +1,30 @@
 import genToken from "../config/token.js"
 import User from "../models/user.model.js"
 import bcrypt from "bcryptjs"
+
+const getCookieOptions = (req) => {
+    const origin = req.headers.origin
+    const requestHost = (req.headers.host || "").split(":")[0]
+    let originHost = ""
+    try {
+        if (origin) {
+            originHost = new URL(origin).hostname
+        }
+    } catch (error) {
+        originHost = ""
+    }
+
+    const isCrossSite = Boolean(originHost) && originHost !== requestHost
+    const isSecureRequest = req.secure || req.headers["x-forwarded-proto"] === "https"
+
+    return {
+        httpOnly: true,
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        sameSite: isCrossSite ? "none" : "lax",
+        secure: isCrossSite || isSecureRequest,
+    }
+}
+
 export const signUp=async (req,res)=>{
 try {
     const {name,email,password}=req.body
@@ -21,14 +45,12 @@ try {
 
     const token=await genToken(user._id)
 
-    res.cookie("token",token,{
-        httpOnly:true,
-       maxAge:7*24*60*60*1000,
-       sameSite:"strict",
-       secure:false
-    })
+    res.cookie("token",token,getCookieOptions(req))
 
-    return res.status(201).json(user)
+    const userObj = user.toObject()
+    delete userObj.password
+
+    return res.status(201).json({ ...userObj, token })
 
 } catch (error) {
        return res.status(500).json({message:`sign up error ${error}`})
@@ -51,14 +73,12 @@ try {
 
     const token=await genToken(user._id)
 
-    res.cookie("token",token,{
-        httpOnly:true,
-       maxAge:7*24*60*60*1000,
-       sameSite:"strict",
-       secure:false
-    })
+    res.cookie("token",token,getCookieOptions(req))
 
-    return res.status(200).json(user)
+    const userObj = user.toObject()
+    delete userObj.password
+
+    return res.status(200).json({ ...userObj, token })
 
 } catch (error) {
        return res.status(500).json({message:`login error ${error}`})
@@ -67,7 +87,7 @@ try {
 
 export const logOut=async (req,res)=>{
     try {
-        res.clearCookie("token")
+        res.clearCookie("token", getCookieOptions(req))
          return res.status(200).json({message:"log out successfully"})
     } catch (error) {
          return res.status(500).json({message:`logout error ${error}`})

@@ -24,11 +24,17 @@ function SignIn() {
         { email, password },
         { withCredentials: true }
       );
-      setUserData(result.data);
+      const { token, ...userPayload } = result.data || {};
+      if (token) {
+        localStorage.setItem("talknex_token", token);
+      } else {
+        localStorage.removeItem("talknex_token");
+      }
+      setUserData(userPayload);
       navigate("/");
     } catch (error) {
       setUserData(null);
-      setErr(error?.response?.data?.message || "Sign-in failed");
+      setErr(error?.response?.data?.message || error?.message || "Sign-in failed");
     } finally {
       setLoading(false);
     }
@@ -36,21 +42,21 @@ function SignIn() {
 
   return (
     <div className="page-shell flex items-center justify-center">
-      <div className="relative z-10 grid w-full max-w-6xl overflow-hidden rounded-[1.8rem] border border-[#9ad4ff45] bg-[#0b132799] shadow-[0_25px_70px_#00000070] lg:grid-cols-[1.05fr_1fr]">
+      <div className="relative z-10 grid w-full max-w-7xl overflow-hidden rounded-[1.8rem] border border-[#9ad4ff45] bg-[#0b132799] shadow-[0_25px_70px_#00000070] xl:grid-cols-[1.02fr_1fr]">
         <section
-          className="relative hidden min-h-[620px] overflow-hidden p-10 lg:block"
+          className="relative hidden min-h-[640px] overflow-hidden px-8 py-9 xl:flex xl:flex-col"
           style={{
             backgroundImage: `linear-gradient(180deg,#0213289f,#081933cc),url(${bg})`,
             backgroundSize: "cover",
             backgroundPosition: "center",
           }}
         >
-          <div className="floaty absolute right-8 top-8 rounded-full border border-[#86fff28a] bg-[#64e2c82b] px-4 py-2 text-sm font-semibold text-[#d9fff8]">
+          <div className="floaty relative z-10 ml-auto w-fit rounded-full border border-[#86fff28a] bg-[#64e2c82b] px-4 py-2 text-sm font-semibold text-[#d9fff8]">
             Voice-First Workspace
           </div>
           <div className="absolute inset-0 bg-gradient-to-t from-[#040912] via-transparent to-transparent" />
-          <div className="relative flex h-full flex-col justify-between">
-            <h1 className="max-w-md text-5xl font-bold leading-tight text-[#eef7ff]">
+          <div className="relative z-10 mt-8 flex h-full flex-col justify-between">
+            <h1 className="max-w-lg text-[clamp(2.6rem,4.4vw,5.1rem)] font-bold leading-[1.05] text-[#eef7ff]">
               Speak once. Let your assistant execute.
             </h1>
             <p className="mono max-w-sm text-sm text-[#c4d7ed]">
@@ -61,14 +67,14 @@ function SignIn() {
         </section>
 
         <form
-          className="reveal-up flex min-h-[620px] flex-col justify-center gap-5 px-6 py-12 sm:px-10"
+          className="reveal-up flex min-h-[560px] flex-col justify-center gap-4 px-5 py-8 sm:min-h-[600px] sm:gap-5 sm:px-8 sm:py-10 lg:px-10"
           onSubmit={handleSignIn}
         >
           <div>
             <p className="mono text-xs uppercase tracking-[0.24em] text-[#9ac8f2]">
               Welcome Back
             </p>
-            <h2 className="mt-2 text-3xl font-bold sm:text-4xl">
+            <h2 className="mt-2 text-[clamp(2rem,4vw,3.2rem)] font-bold leading-[1.1]">
               Sign In to <span className="text-[#67f5d5]">TalkNEX</span>
             </h2>
             <p className="mt-2 text-sm subtle">

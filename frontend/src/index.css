@@ -50,8 +50,9 @@ textarea {
 .page-shell {
   position: relative;
   min-height: 100vh;
-  padding: 1.2rem;
-  overflow: hidden;
+  padding: clamp(0.75rem, 2vw, 1.2rem);
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .page-shell::before {
@@ -130,6 +131,32 @@ textarea {
   padding: 0.7rem 1rem;
   outline: none;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+@media (max-width: 1024px) {
+  .page-shell::after {
+    width: 260px;
+    height: 260px;
+    left: -90px;
+    top: -90px;
+  }
+}
+
+@media (max-width: 640px) {
+  .glass-card {
+    border-radius: 1rem;
+  }
+
+  .field {
+    height: 3.15rem;
+    border-radius: 0.85rem;
+    font-size: 0.98rem;
+  }
+
+  .primary-btn,
+  .ghost-btn {
+    min-height: 2.85rem;
+  }
 }
 
 .field::placeholder {

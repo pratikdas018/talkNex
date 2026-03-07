@@ -17,9 +17,46 @@ function Home() {
   const isSpeakingRef = useRef(false);
   const isRecognizingRef = useRef(false);
   const recognitionRef = useRef(null);
+  const awaitingCommandRef = useRef(false);
+  const wakeTimeoutRef = useRef(null);
   const userDataRef = useRef(userData);
   const geminiFnRef = useRef(getGeminiResponse);
   const synth = window.speechSynthesis;
+
+  const normalizeSpeechText = (value = "") =>
+    value
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+  const escapeRegex = (value = "") => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  const sanitizeCommandText = (rawCommand, assistantName) => {
+    const wake = normalizeSpeechText(assistantName);
+    let cleaned = normalizeSpeechText(rawCommand);
+
+    if (wake) {
+      const wakePattern = new RegExp(`\\b${escapeRegex(wake)}\\b`, "gi");
+      cleaned = cleaned.replace(wakePattern, " ");
+    }
+
+    const noisePhrases = [
+      "what can i help you with",
+      "how can i help you",
+      "can i help you",
+      "tell me",
+      "please",
+    ];
+
+    for (const phrase of noisePhrases) {
+      const phrasePattern = new RegExp(`\\b${escapeRegex(phrase)}\\b`, "gi");
+      cleaned = cleaned.replace(phrasePattern, " ");
+    }
+
+    cleaned = cleaned.replace(/\s+/g, " ").trim();
+    return cleaned;
+  };
 
   useEffect(() => {
     userDataRef.current = userData;
@@ -39,6 +76,7 @@ function Home() {
     } catch (error) {
       console.log(error);
     } finally {
+      localStorage.removeItem("talknex_token");
       setUserData(null);
       navigate("/signin");
     }
@@ -75,7 +113,6 @@ function Home() {
     if (hindiVoice) utterance.voice = hindiVoice;
 
     utterance.onend = () => {
-      setAiText("");
       isSpeakingRef.current = false;
       setTimeout(() => startRecognition(), 800);
     };
@@ -117,7 +154,7 @@ function Home() {
 
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
-    recognition.lang = "en-US";
+    recognition.lang = "en-IN";
     recognition.interimResults = false;
     recognitionRef.current = recognition;
 
@@ -164,29 +201,89 @@ function Home() {
       if (!activeUser) return;
 
       const assistantName = activeUser.assistantName || "Assistant";
-      if (transcript.toLowerCase().includes(assistantName.toLowerCase())) {
-        setAiText("");
-        setUserText(transcript);
+      setUserText(transcript);
+
+      const normalizedTranscript = normalizeSpeechText(transcript);
+      const normalizedAssistantName = normalizeSpeechText(assistantName);
+      const compactTranscript = normalizedTranscript.replace(/\s+/g, "");
+      const compactAssistantName = normalizedAssistantName.replace(/\s+/g, "");
+
+      const hasWakeWord =
+        normalizedTranscript.includes(normalizedAssistantName) ||
+        compactTranscript.includes(compactAssistantName);
+
+      // If user only says wake word, arm assistant for next sentence.
+      const onlyWakeWord =
+        normalizedTranscript === normalizedAssistantName ||
+        compactTranscript === compactAssistantName;
+
+      if (hasWakeWord && onlyWakeWord) {
+        awaitingCommandRef.current = true;
+        if (wakeTimeoutRef.current) clearTimeout(wakeTimeoutRef.current);
+        wakeTimeoutRef.current = setTimeout(() => {
+          awaitingCommandRef.current = false;
+        }, 7000);
+        setAiText("Listening... tell me your command.");
+        return;
+      }
+
+      let commandToProcess = "";
+      if (hasWakeWord) {
+        commandToProcess = normalizedTranscript.replace(normalizedAssistantName, "").trim() || transcript;
+      } else if (awaitingCommandRef.current) {
+        commandToProcess = transcript;
+      } else {
+        return;
+      }
+
+      awaitingCommandRef.current = false;
+      if (wakeTimeoutRef.current) {
+        clearTimeout(wakeTimeoutRef.current);
+        wakeTimeoutRef.current = null;
+      }
+
+      if (commandToProcess) {
+        const cleanedCommand = sanitizeCommandText(commandToProcess, assistantName);
+        const finalCommand = cleanedCommand || commandToProcess;
+
+        if (!finalCommand || finalCommand.length < 2) {
+          setAiText("Please say your command again.");
+          return;
+        }
+
+        setUserText("");
+        setAiText("Processing your request...");
         recognition.stop();
         isRecognizingRef.current = false;
         setListening(false);
         try {
-          const data = await geminiFnRef.current?.(transcript);
-          if (data) {
-            handleCommand(data);
-            setAiText(data.response);
-          } else {
-            const errorMsg = "I'm sorry, I couldn't connect to the server.";
+          let data = await geminiFnRef.current?.(finalCommand);
+
+          const unclearReply =
+            !data ||
+            /couldn.?t understand|didn.?t understand/i.test(data?.response || "");
+
+          // Retry once with a stronger "general answer" framing if the first response was unclear.
+          if (unclearReply && finalCommand) {
+            const retryPrompt = `Answer this clearly in one short response: ${finalCommand}`;
+            data = await geminiFnRef.current?.(retryPrompt);
+          }
+
+          if (!data) {
+            const errorMsg = "I could not process that. Please try again.";
             setAiText(errorMsg);
             speak(errorMsg);
+            return;
           }
+
+          handleCommand(data);
+          setAiText(data.response);
         } catch (error) {
           console.error("Error processing command:", error);
           const errorMsg = "I'm sorry, something went wrong.";
           setAiText(errorMsg);
           speak(errorMsg);
         }
-        setUserText("");
       }
     };
 
@@ -204,6 +301,7 @@ function Home() {
       } catch (error) {
         console.log(error);
       }
+      if (wakeTimeoutRef.current) clearTimeout(wakeTimeoutRef.current);
       setListening(false);
       isRecognizingRef.current = false;
     };
@@ -256,8 +354,8 @@ function Home() {
         {ham && <div className="absolute inset-0 bg-[#00000080]" onClick={() => setHam(false)} />}
       </div>
 
-      <div className="relative z-10 mx-auto grid max-w-7xl gap-6 lg:grid-cols-[300px_1fr]">
-        <aside className="glass-card hidden h-[calc(100vh-2.4rem)] flex-col p-5 lg:flex">
+      <div className="relative z-10 mx-auto grid max-w-7xl gap-4 sm:gap-6 lg:grid-cols-[300px_1fr]">
+        <aside className="glass-card hidden h-[calc(100vh-2.4rem)] flex-col p-4 lg:flex xl:p-5">
           <p className="mono text-xs uppercase tracking-[0.24em] text-[#95c6f1]">TalkNEX Console</p>
           <h2 className="mt-2 text-2xl font-bold">Mission Feed</h2>
           <p className="mt-2 text-sm subtle">Track all your recent voice commands in one place.</p>
@@ -280,33 +378,33 @@ function Home() {
           </div>
         </aside>
 
-        <main className="glass-card reveal-up flex min-h-[calc(100vh-2.4rem)] flex-col items-center justify-center p-5 sm:p-8">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#86fff28a] bg-[#64e2c82b] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#d9fff8]">
+        <main className="glass-card reveal-up flex min-h-[calc(100vh-2.4rem)] flex-col items-center justify-center p-4 sm:p-6 lg:p-8">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[#86fff28a] bg-[#64e2c82b] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#d9fff8] sm:mb-4 sm:px-4 sm:py-2 sm:text-xs">
             <span className={`pulse-dot ${listening ? "active" : ""}`} />
             {listening ? "Listening" : "Standby"}
           </div>
 
-          <div className="relative overflow-hidden rounded-[2rem] border border-[#86b8ff5e] bg-[#071329] p-2 shadow-[0_16px_45px_#00000066]">
+          <div className="relative overflow-hidden rounded-[1.5rem] border border-[#86b8ff5e] bg-[#071329] p-2 shadow-[0_16px_45px_#00000066] sm:rounded-[2rem]">
             <img
               src={userData?.assistantImage}
               alt="Assistant"
-              className="h-[270px] w-[210px] rounded-[1.5rem] object-cover sm:h-[390px] sm:w-[300px]"
+              className="h-[238px] w-[186px] rounded-[1.1rem] object-cover sm:h-[310px] sm:w-[240px] lg:h-[390px] lg:w-[300px] lg:rounded-[1.5rem]"
             />
           </div>
 
-          <h1 className="mt-5 text-2xl font-bold sm:text-3xl">
+          <h1 className="mt-4 text-[clamp(1.9rem,4vw,3rem)] font-bold">
             I'm <span className="text-[#67f5d5]">{userData?.assistantName || "Assistant"}</span>
           </h1>
 
-          <div className="mt-4">
-            {!aiText && <img src={userImg} alt="User state" className="h-[110px] w-[110px] object-contain" />}
-            {aiText && <img src={aiImg} alt="Assistant state" className="h-[110px] w-[110px] object-contain" />}
+          <div className="mt-3 sm:mt-4">
+            {!aiText && <img src={userImg} alt="User state" className="h-[92px] w-[92px] object-contain sm:h-[110px] sm:w-[110px]" />}
+            {aiText && <img src={aiImg} alt="Assistant state" className="h-[92px] w-[92px] object-contain sm:h-[110px] sm:w-[110px]" />}
           </div>
 
-          <div className="mt-4 w-full max-w-2xl rounded-2xl border border-[#86b8ff5e] bg-[#071329d4] px-4 py-4">
+          <div className="mt-3 w-full max-w-2xl rounded-2xl border border-[#86b8ff5e] bg-[#071329d4] px-3 py-3 sm:mt-4 sm:px-4 sm:py-4">
             <p className="mono text-[11px] uppercase tracking-[0.2em] text-[#95c6f1]">Live Transcript</p>
             <p className="mt-2 min-h-[26px] text-center text-sm text-[#dbecff] sm:text-base">
-              {userText || aiText || "Say your assistant name to begin."}
+              {aiText || userText || "Say your assistant name to begin."}
             </p>
           </div>
         </main>

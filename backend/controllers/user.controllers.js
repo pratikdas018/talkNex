@@ -1,4 +1,3 @@
- import { response } from "express"
 import uploadOnCloudinary from "../config/cloudinary.js"
 import geminiResponse from "../gemini.js"
 import User from "../models/user.model.js"
@@ -69,6 +68,10 @@ return res.status(200).json(user)
 export const askToAssistant=async (req,res)=>{
    try {
       const {command}=req.body
+      if (!command || typeof command !== "string") {
+         return res.status(400).json({ response: "Command is required." })
+      }
+
       const user=await User.findById(req.userId);
       if (!user) {
          return res.status(404).json({ response: "User not found" });
@@ -81,7 +84,11 @@ export const askToAssistant=async (req,res)=>{
       const result=await geminiResponse(command,assistantName,userName)
 
       if(!result){
-         return res.status(400).json({response:"Sorry, I couldn't understand that."})
+         return res.status(200).json({
+            type: "general",
+            userInput: command,
+            response: "I am having trouble reaching the AI service right now. Please try again.",
+         })
       }
       const gemResult=result
       console.log("Gemini Response:", gemResult)

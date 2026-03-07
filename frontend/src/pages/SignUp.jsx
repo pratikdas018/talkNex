@@ -25,11 +25,17 @@ function SignUp() {
         { name, email, password },
         { withCredentials: true }
       );
-      setUserData(result.data);
+      const { token, ...userPayload } = result.data || {};
+      if (token) {
+        localStorage.setItem("talknex_token", token);
+      } else {
+        localStorage.removeItem("talknex_token");
+      }
+      setUserData(userPayload);
       navigate("/customize");
     } catch (error) {
       setUserData(null);
-      setErr(error?.response?.data?.message || "Sign-up failed");
+      setErr(error?.response?.data?.message || error?.message || "Sign-up failed");
     } finally {
       setLoading(false);
     }
@@ -37,16 +43,16 @@ function SignUp() {
 
   return (
     <div className="page-shell flex items-center justify-center">
-      <div className="relative z-10 grid w-full max-w-6xl overflow-hidden rounded-[1.8rem] border border-[#9ad4ff45] bg-[#0b132799] shadow-[0_25px_70px_#00000070] lg:grid-cols-[1fr_1.08fr]">
+      <div className="relative z-10 grid w-full max-w-7xl overflow-hidden rounded-[1.8rem] border border-[#9ad4ff45] bg-[#0b132799] shadow-[0_25px_70px_#00000070] xl:grid-cols-[1fr_1.04fr]">
         <form
-          className="reveal-up order-2 flex min-h-[620px] flex-col justify-center gap-5 px-6 py-12 sm:px-10 lg:order-1"
+          className="reveal-up order-2 flex min-h-[560px] flex-col justify-center gap-4 px-5 py-8 sm:min-h-[600px] sm:gap-5 sm:px-8 sm:py-10 lg:px-10 xl:order-1"
           onSubmit={handleSignUp}
         >
           <div>
             <p className="mono text-xs uppercase tracking-[0.24em] text-[#9ac8f2]">
               New User Setup
             </p>
-            <h2 className="mt-2 text-3xl font-bold sm:text-4xl">
+            <h2 className="mt-2 text-[clamp(2rem,4vw,3.2rem)] font-bold leading-[1.1]">
               Create Your <span className="text-[#67f5d5]">TalkNEX</span> Hub
             </h2>
             <p className="mt-2 text-sm subtle">
@@ -106,19 +112,19 @@ function SignUp() {
         </form>
 
         <section
-          className="order-1 relative hidden min-h-[620px] overflow-hidden p-10 lg:order-2 lg:block"
+          className="order-1 relative hidden min-h-[640px] overflow-hidden px-8 py-9 xl:order-2 xl:flex xl:flex-col"
           style={{
             backgroundImage: `linear-gradient(180deg,#031022c4,#030f22d8),url(${bg})`,
             backgroundSize: "cover",
             backgroundPosition: "center",
           }}
         >
-          <div className="floaty absolute left-8 top-8 rounded-full border border-[#96c8ff88] bg-[#5fa2e52d] px-4 py-2 text-sm font-semibold text-[#dcecff]">
+          <div className="floaty relative z-10 w-fit rounded-full border border-[#96c8ff88] bg-[#5fa2e52d] px-4 py-2 text-sm font-semibold text-[#dcecff]">
             Personal AI Signature
           </div>
           <div className="absolute inset-0 bg-gradient-to-t from-[#040912] via-transparent to-transparent" />
-          <div className="relative flex h-full flex-col justify-between">
-            <h1 className="max-w-md text-5xl font-bold leading-tight text-[#eef7ff]">
+          <div className="relative z-10 mt-8 flex h-full flex-col justify-between">
+            <h1 className="max-w-lg text-[clamp(2.6rem,4.4vw,5.2rem)] font-bold leading-[1.05] text-[#eef7ff]">
               Design an assistant that sounds like your world.
             </h1>
             <p className="mono max-w-sm text-sm text-[#c4d7ed]">

@@ -9,6 +9,7 @@ function Customize2() {
     useContext(userDataContext);
   const [assistantName, setAssistantName] = useState(userData?.assistantName || "");
   const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
   const navigate = useNavigate();
 
   const previewImage = useMemo(() => {
@@ -18,6 +19,7 @@ function Customize2() {
 
   const handleUpdateAssistant = async () => {
     if (!assistantName.trim()) return;
+    setErr("");
     setLoading(true);
     try {
       const formData = new FormData();
@@ -27,13 +29,23 @@ function Customize2() {
       } else if (selectedImage) {
         formData.append("imageUrl", selectedImage);
       }
+      const token = localStorage.getItem("talknex_token");
       const result = await axios.post(`${serverUrl}/api/user/update`, formData, {
         withCredentials: true,
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       setUserData(result.data);
       navigate("/");
     } catch (error) {
       console.log(error);
+      const apiMessage = error?.response?.data?.message || "Unable to launch assistant";
+      if (apiMessage.toLowerCase().includes("token not found")) {
+        localStorage.removeItem("talknex_token");
+        setUserData(null);
+        navigate("/signin");
+        return;
+      }
+      setErr(apiMessage);
     } finally {
       setLoading(false);
     }
@@ -81,6 +93,7 @@ function Customize2() {
           <p className="text-sm subtle">
             Tip: keep it short and distinct so voice recognition catches it quickly.
           </p>
+          {err && <p className="rounded-xl bg-[#ff7f9f1c] px-3 py-2 text-sm text-[#ff9ab1]">{err}</p>}
 
           <button
             className="primary-btn mt-3 h-12 px-8"
